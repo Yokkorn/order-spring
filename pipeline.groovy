@@ -26,6 +26,7 @@ pipeline {
                 script {
                     sh '''
                         export DOCKER_CLIENT_TIMEOUT=12000
+                        export JAVA_HOME=/opt/homebrew/Cellar/openjdk@21/21.0.4/libexec/openjdk.jdk/Contents/Home
                         export COMPOSE_HTTP_TIMEOUT=12000
                         echo "Docker client timeout: $DOCKER_CLIENT_TIMEOUT"
                         echo "Compose HTTP timeout: $COMPOSE_HTTP_TIMEOUT"
@@ -35,15 +36,8 @@ pipeline {
         }
         stage('Build Maven') {
             steps {
-                checkout([$class: 'GitSCM', credentialsId: 'githubpwd', branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/maxca/spring-java-jenkins.git']]])
-                sh 'mvn clean install'
-            }
-        }
-        stage('Clean Docker State') {
-            steps {
-                script {
-                    sh '${DOCKER_HOME} system prune -af --volumes' // Clean all Docker resources
-                }
+                checkout([$class: 'GitSCM', credentialsId: 'githubpwd', branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/Yokkorn/order-spring.git']]])
+                sh '/opt/homebrew/bin/mvn clean install'
             }
         }
         stage('Build Image') {
@@ -77,7 +71,7 @@ pipeline {
         }
         stage('Deploy to k8s') {
             steps {
-                withKubeConfig([credentialsId: 'kubectlpwd', serverUrl: 'https://127.0.0.1:51092']) {
+                withKubeConfig([credentialsId: 'kubectlpwd', serverUrl: 'https://127.0.0.1:49369']) {
                     script {
                         // Replace the image tag in the deployment YAML file
                         sh "sed -i '' 's/\$IMAGE_TAG/$IMAGE_TAG/g' k8s/deployment.yaml"
